@@ -19,7 +19,7 @@ require("./preview.cjs");
     await page.goto("http://127.0.0.1:4175/#" + key);
   };
   const fill = async (n, v) => page.locator(`[name="${n}"]`).fill(v);
-  const save = async () => page.locator('[type="submit"]').click();
+  const save = async () => page.locator('#edit-form [type="submit"]').click();
   await go("home");
   assert.equal(await page.locator(".module").count(), 5);
   assert.equal(await page.getByText("Общага с друзьями").count(), 0);
@@ -175,6 +175,75 @@ require("./preview.cjs");
   console.log(
     "PASS homework date/time, weekday validation, completion and reload",
   );
+
+  await go("schedule");
+  const anchor = await page.evaluate(() =>
+    StudentLife.monday(StudentLife.dateKey(new Date())),
+  );
+  await page.locator("#cycle-anchor").fill(anchor);
+  await page.locator("#cycle-anchor-type").selectOption("Числитель");
+  await page.locator('#cycle-form [type="submit"]').click();
+  await page.locator('[data-day="Понедельник"]').click();
+  for (const [title, type] of [
+    ["Числитель тест", "Числитель"],
+    ["Знаменатель тест", "Знаменатель"],
+  ]) {
+    await page.locator("[data-add]").click();
+    await fill("title", title);
+    await page.locator('[name="day"]').selectOption("Понедельник");
+    await page.locator('[name="weekType"]').selectOption(type);
+    await fill("start", "11:00");
+    await fill("end", "12:30");
+    await fill("room", "202");
+    await save();
+  }
+  const numerator = page
+      .locator(".row")
+      .filter({
+        has: page.getByRole("heading", { name: "Числитель тест", exact: true }),
+      }),
+    denominator = page
+      .locator(".row")
+      .filter({
+        has: page.getByRole("heading", {
+          name: "Знаменатель тест",
+          exact: true,
+        }),
+      });
+  assert.equal(await denominator.count(), 1);
+  assert.equal(await numerator.count(), 0);
+  assert.equal(
+    await page.getByRole("heading", { name: "Моя пара", exact: true }).count(),
+    1,
+  );
+  await page.locator('[data-week="schedule"][data-shift="7"]').click();
+  assert.equal(await numerator.count(), 1);
+  assert.equal(await denominator.count(), 0);
+  await page.locator('[data-cycle-type="Знаменатель"]').click();
+  assert.equal(await denominator.count(), 1);
+  assert.equal(await numerator.count(), 0);
+  await page.locator('[data-week="schedule"][data-shift="0"]').click();
+  assert.equal(await numerator.count(), 1);
+  await numerator.locator("[data-edit]").click();
+  await page.locator("[data-add-homework]").click();
+  let cycleHw = page.locator(".homework-editor");
+  await cycleHw.locator('[data-value="text"]').fill("ДЗ только числитель");
+  await cycleHw
+    .locator('[data-value="date"]')
+    .fill(await page.evaluate((a) => StudentLife.addDays(a, 7), anchor));
+  await save();
+  assert.match(await page.locator("#form-error").innerText(), /числителем/);
+  await cycleHw.locator('[data-value="date"]').fill(anchor);
+  await save();
+  await page.reload();
+  await page.locator('[data-day="Понедельник"]').click();
+  assert.equal(await numerator.count(), 1);
+  assert.match(await numerator.innerText(), /ДЗ только числитель/);
+  await page.screenshot({ path: "schedule-preview.png", fullPage: true });
+  console.log(
+    "PASS numerator/denominator setup, automatic week switching, common classes, homework parity and persistence",
+  );
+
   await go("finance");
   await page.locator('[data-category="Одежда"]').click();
   await page.locator("[data-add]").click();
@@ -411,6 +480,19 @@ require("./preview.cjs");
   console.log(
     "PASS old data migration and hidden dorm backup; all mobile layouts and safe HTML",
   );
+
+  const rollover=await browser.newPage();
+  await rollover.route('https://telegram.org/**',r=>r.fulfill({body:''}));
+  await rollover.clock.install({time:new Date('2026-10-11T23:59:00')});
+  await rollover.goto('http://127.0.0.1:4175');
+  await rollover.evaluate(()=>localStorage.setItem('student-life:v2',JSON.stringify({schemaVersion:2,scheduleCycle:{anchorMonday:'2026-10-05',anchorType:'Числитель',confirmed:true},schedule:[{id:'sun',title:'Воскресенье числителя',day:'Воскресенье',weekType:'Числитель',start:'09:00',end:'10:00',room:'1',homework:[]},{id:'mon',title:'Понедельник знаменателя',day:'Понедельник',weekType:'Знаменатель',start:'09:00',end:'10:00',room:'2',homework:[]}],reminders:[],meals:[],gym:[],gymLogs:[],products:[],finance:[],notifications:{enabled:false,timezone:'Asia/Qyzylorda'}})));
+  await rollover.goto('http://127.0.0.1:4175/#schedule');await rollover.reload();
+  assert.equal(await rollover.getByRole('heading',{name:'Воскресенье числителя',exact:true}).count(),1);
+  await rollover.clock.runFor(120000);
+  assert.equal(await rollover.getByRole('heading',{name:'Понедельник знаменателя',exact:true}).count(),1);
+  assert.equal(await rollover.locator('[data-cycle-type="Знаменатель"]').getAttribute('aria-pressed'),'true');
+  console.log('PASS automatic Sunday-to-Monday rollover while the app stays open');
+
   await browser.close();
   process.exit(0);
 })().catch((error) => {

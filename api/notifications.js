@@ -33,6 +33,10 @@ module.exports = async function handler(req, res) {
     });
     return S.reply(res, 200, { enabled: state.enabled });
   } catch (error) {
+    if (error.message === "cycle")
+      return S.reply(res, 400, {
+        error: "Сначала настрой числитель и знаменатель в разделе расписания.",
+      });
     if (error.message === "auth")
       return S.reply(res, 401, {
         error:

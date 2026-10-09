@@ -349,3 +349,84 @@ test("notification sync stores only verified user data and server-selected field
     global.fetch = oldFetch;
   }
 });
+
+test("alternating weeks work before the anchor and across year boundaries", () => {
+  const c = {
+    anchorMonday: "2026-12-28",
+    anchorType: "Числитель",
+    confirmed: true,
+  };
+  assert.equal(D.cycleType("2026-12-28", c), "Числитель");
+  assert.equal(D.cycleType("2027-01-03", c), "Числитель");
+  assert.equal(D.cycleType("2027-01-04", c), "Знаменатель");
+  assert.equal(D.cycleType("2027-01-11", c), "Числитель");
+  assert.equal(D.cycleType("2026-12-21", c), "Знаменатель");
+  assert.equal(D.cycleType("2026-12-14", c), "Числитель");
+  assert.equal(
+    D.cycleType("2027-01-04", { ...c, anchorType: "Знаменатель" }),
+    "Числитель",
+  );
+});
+test("classes and homework reminders follow the same confirmed cycle", () => {
+  const s = state();
+  s.cycle = {
+    anchorMonday: "2026-10-05",
+    anchorType: "Числитель",
+    confirmed: true,
+  };
+  s.schedule[0].weekType = "Числитель";
+  assert.equal(D.classOnDate(s.schedule[0], "2026-10-12", s.cycle), false);
+  assert.equal(
+    D.nextClassDate(s.schedule[0], "2026-10-12", s.cycle),
+    "2026-10-19",
+  );
+  let events = D.notificationEvents(s, new Date("2026-10-09T00:00:00Z"));
+  assert.equal(events.filter((x) => x.id.startsWith("hw:")).length, 0);
+  assert.equal(
+    events.filter((x) => x.id === "leave:class:2026-10-12").length,
+    0,
+  );
+  s.schedule[0].weekType = "Знаменатель";
+  events = D.notificationEvents(s, new Date("2026-10-09T00:00:00Z"));
+  assert.equal(events.filter((x) => x.id.startsWith("hw:")).length, 3);
+  assert.equal(
+    events.filter((x) => x.id === "leave:class:2026-10-12").length,
+    1,
+  );
+  s.cycle.confirmed = false;
+  assert.equal(
+    D.notificationEvents(s, new Date("2026-10-09T00:00:00Z")).filter((x) =>
+      /^(leave|hw):/.test(x.id),
+    ).length,
+    0,
+  );
+  s.schedule[0].weekType = "Каждую неделю";
+  assert.equal(D.classOnDate(s.schedule[0], "2026-10-12", s.cycle), true);
+});
+test("server validates reference week and homework parity, retains cycle in stored state", () => {
+  const s = state();
+  s.cycle = {
+    anchorMonday: "2026-10-05",
+    anchorType: "Числитель",
+    confirmed: true,
+  };
+  s.schedule[0].weekType = "Знаменатель";
+  assert.equal(S.validateState(s).cycle.anchorMonday, "2026-10-05");
+  s.schedule[0].weekType = "Числитель";
+  assert.throws(() => S.validateState(s));
+  s.schedule[0].homework = [];
+  s.cycle.confirmed = false;
+  assert.throws(() => S.validateState(s), /cycle/);
+  s.cycle.confirmed = true;
+  s.cycle.anchorMonday = "2026-10-06";
+  assert.throws(() => S.validateState(s));
+  assert.equal(
+    D.migrate({
+      schedule: [{ id: "old", title: "Old" }],
+      meals: [],
+      gym: [],
+      finance: [],
+    }).schedule[0].weekType,
+    "Каждую неделю",
+  );
+});

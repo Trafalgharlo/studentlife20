@@ -58,6 +58,7 @@
     schedule: [
       ["title", "Предмет", "text"],
       ["day", "День недели", D.days],
+      ["weekType", "Какие недели", D.weekTypes],
       ["start", "Начало пары", "time"],
       ["end", "Конец пары", "time"],
       ["room", "Аудитория", "text"],
@@ -162,6 +163,7 @@
   let data = structuredClone(seed),
     week = D.monday(today()),
     financeWeek = week,
+    scheduleWeek = week,
     category = "Все",
     selectedDay = day(),
     selectedMeal = null,
@@ -203,6 +205,11 @@
       "Не удалось прочитать данные. Открыты примеры; старое хранилище сохранено.",
     );
   }
+  data.scheduleCycle ||= {
+    anchorMonday: D.monday(today()),
+    anchorType: "Числитель",
+    confirmed: false,
+  };
   function persist(sync = true) {
     try {
       localStorage.setItem(storageKey, JSON.stringify(data));
@@ -278,7 +285,7 @@
     let detail = "",
       extra = "";
     if (key === "schedule") {
-      detail = `${x.start}–${x.end} · ${x.room}\n${x.teacher || ""}`;
+      detail = `${x.start}–${x.end} · ${x.room}\n${x.teacher || ""} · ${x.weekType || "Каждую неделю"}`;
       extra = `<p class="hint">🎒 Выход за 30 минут до каждой пары</p><div class="homework-list">${x.homework.map((hw) => `<label class="homework-item ${hw.done ? "completed" : ""}"><input class="check" type="checkbox" data-homework="${esc(hw.id)}" data-class="${esc(x.id)}" ${hw.done ? "checked" : ""}><span><strong>ДЗ: ${esc(hw.text)}</strong><small>Пара ${esc(hw.date)} в ${esc(x.start)} · сдать до ${esc(hw.time)}</small></span></label>`).join("")}</div>`;
     }
     if (key === "reminders")
@@ -342,7 +349,7 @@
     return `<section class="random"><span aria-hidden="true">🍲</span><h2>${x ? esc(x.title) + badge(x) : "Что сегодня приготовить?"}</h2><p>${x ? esc(x.ingredients.map((i) => `${i.name} — ${i.grams} г`).join(", ")) : "Добавляй свои блюда и выбирай случайное из списка."}</p>${x && x.ingredients.length ? macros(x.ingredients, x.servings) : ""}<button class="primary" data-random ${data.meals.length ? "" : "disabled"}>↻ ${x ? "Ещё вариант" : "Выбрать блюдо"}</button></section><p class="hint">Сохранённых ингредиентов: ${data.products.length}. Выбери название при добавлении состава, чтобы подставить КБЖУ.</p>`;
   }
   function home() {
-    return `<section class="hero"><span class="eyebrow">ЖИЗНЬ — ЭТО БОЛЬШЕ, ЧЕМ ПАРЫ</span><h2>Планы в порядке.<br>Ты — в моменте.</h2><p>Учись, тренируйся и находи время для себя. Остальное соберём здесь.</p><a class="primary" href="#schedule">Моё расписание →</a><span class="hero-art" aria-hidden="true">🎒</span></section><div class="section-head"><h2>Твой день в цифрах</h2><small>Включая демонстрационные записи</small></div><div class="stats">${stat("📚", data.schedule.filter((x) => x.day === day()).length, "Пар сегодня")}${stat("☑", data.reminders.filter((x) => x.date === today() && !x.done).length, "Дел на сегодня")}${stat("⚡", data.gym.filter((x) => x.day === day()).length, "Тренировок сегодня")}</div><div class="section-head"><h2>Всё, что тебе нужно</h2><small>Пять разделов. Один ритм.</small></div><div class="cards">${Object.entries(
+    return `<section class="hero"><span class="eyebrow">ЖИЗНЬ — ЭТО БОЛЬШЕ, ЧЕМ ПАРЫ</span><h2>Планы в порядке.<br>Ты — в моменте.</h2><p>Учись, тренируйся и находи время для себя. Остальное соберём здесь.</p><a class="primary" href="#schedule">Моё расписание →</a><span class="hero-art" aria-hidden="true">🎒</span></section><div class="section-head"><h2>Твой день в цифрах</h2><small>Включая демонстрационные записи</small></div><div class="stats">${stat("📚", data.schedule.filter((x) => D.classOnDate(x, today(), data.scheduleCycle)).length, "Пар сегодня")}${stat("☑", data.reminders.filter((x) => x.date === today() && !x.done).length, "Дел на сегодня")}${stat("⚡", data.gym.filter((x) => x.day === day()).length, "Тренировок сегодня")}</div><div class="section-head"><h2>Всё, что тебе нужно</h2><small>Пять разделов. Один ритм.</small></div><div class="cards">${Object.entries(
       modules,
     )
       .map(
@@ -350,6 +357,11 @@
           `<a class="module" href="#${k}"><div class="module-top"><span class="icon-tile" style="--tile:${m.color}">${m.icon}</span><span class="arrow">↗</span></div><h3>${m.title}</h3><p>${m.desc}</p><div class="module-meta">${data[k].length} записей · открыть →</div></a>`,
       )
       .join("")}</div>`;
+  }
+  function cyclePanel() {
+    const c = data.scheduleCycle,
+      type = D.cycleType(scheduleWeek, c);
+    return `<section class="panel cycle-settings"><h2>Числитель / знаменатель</h2><p class="hint">Один раз укажи, какая неделя была числителем или знаменателем. Дальше расписание будет чередоваться само, в том числе после Нового года.</p><form id="cycle-form"><div class="ingredient-values"><label class="field">Любая дата известной недели<input id="cycle-anchor" type="date" value="${esc(c.anchorMonday)}" required></label><label class="field">Эта неделя —<select id="cycle-anchor-type"><option ${c.anchorType === "Числитель" ? "selected" : ""}>Числитель</option><option ${c.anchorType === "Знаменатель" ? "selected" : ""}>Знаменатель</option></select></label></div><button class="secondary" type="submit">Сохранить чередование</button></form><p class="hint">${c.confirmed ? `Опорная неделя с ${esc(c.anchorMonday)} — ${esc(c.anchorType.toLowerCase())}.` : "Чередование ещё не подтверждено. Пока это предварительный просмотр; уведомления для чередующихся пар не включатся до настройки."}</p></section>${weekPicker(scheduleWeek, "schedule")}<div class="tabs" role="group" aria-label="Тип недели">${["Числитель", "Знаменатель"].map((t) => `<button class="tab ${type === t ? "active" : ""}" data-cycle-type="${t}" aria-pressed="${type === t}">${t}</button>`).join("")}</div><p class="hint">Неделя с ${scheduleWeek}: ${type.toLowerCase()}${c.confirmed ? "" : " (предварительно)"}. Общие пары показываются в обеих неделях.</p>`;
   }
   function render() {
     const key = route();
@@ -378,9 +390,18 @@
       let extra = "",
         items = [...data[key]];
       if (key === "schedule") {
-        extra = `<div class="tabs" role="group" aria-label="День недели">${D.days.map((d) => `<button class="tab ${d === selectedDay ? "active" : ""}" data-day="${d}" aria-label="${d}" aria-pressed="${d === selectedDay}">${d.slice(0, 2)}</button>`).join("")}</div><p class="hint">Расписание повторяется каждую неделю. ДЗ привязывается к дате пары; сдать можно к своему времени. Уведомления подключаются в разделе «Напоминания».</p>`;
+        extra =
+          cyclePanel() +
+          `<div class="tabs" role="group" aria-label="День недели">${D.days.map((d) => `<button class="tab ${d === selectedDay ? "active" : ""}" data-day="${d}" aria-label="${d}" aria-pressed="${d === selectedDay}">${d.slice(0, 2)}</button>`).join("")}</div><p class="hint">Пары чередуются автоматически по выбранной опорной неделе. ДЗ привязывается к конкретной дате пары. Уведомления подключаются в разделе «Напоминания».</p>`;
         items = items
-          .filter((x) => x.day === selectedDay)
+          .filter((x) =>
+            D.classOnDate(
+              x,
+              D.addDays(scheduleWeek, D.days.indexOf(selectedDay)),
+              data.scheduleCycle,
+              true,
+            ),
+          )
           .sort((a, b) => a.start.localeCompare(b.start));
       }
       if (key === "reminders") {
@@ -445,7 +466,7 @@
     return `<fieldset class="ingredient-editor"><legend>Ингредиент</legend><div class="section-head"><label class="field grow">Название<input data-value="name" list="products" value="${esc(i.name || "")}" maxlength="150" required placeholder="Введи или выбери сохранённый"></label><button type="button" class="icon-button" data-remove-ingredient aria-label="Удалить ингредиент">×</button></div><div class="ingredient-values">${numeric("grams", "В блюде, г", i.grams ?? 100, 0.1, 100000)}${numeric("kcal", "Ккал / 100 г", i.kcal ?? "", 0, 1000)}${numeric("protein", "Белки / 100 г", i.protein ?? "", 0, 100)}${numeric("fat", "Жиры / 100 г", i.fat ?? "", 0, 100)}${numeric("carbs", "Углеводы / 100 г", i.carbs ?? "", 0, 100)}</div></fieldset>`;
   }
   function homeworkRow(hw = {}, item = {}) {
-    return `<fieldset class="homework-editor" data-homework-id="${esc(hw.id || uid())}"><legend>Домашнее задание</legend><div class="section-head"><label class="field grow">Задание<textarea data-value="text" maxlength="2000" required>${esc(hw.text || "")}</textarea></label><button type="button" class="icon-button" data-remove-homework aria-label="Удалить домашнее задание">×</button></div><div class="ingredient-values"><label class="field">Дата пары<input data-value="date" type="date" value="${esc(hw.date || D.nextDate(item.day || selectedDay, today()))}" required></label><label class="field">Сдать до<input data-value="time" type="time" value="${esc(hw.time || item.start || "09:00")}" required></label></div><label class="checkbox-label"><input data-value="done" type="checkbox" ${hw.done ? "checked" : ""}> ДЗ выполнено</label><p class="hint">Напоминания за 48, 24 и 10 часов до начала пары в эту дату.</p></fieldset>`;
+    return `<fieldset class="homework-editor" data-homework-id="${esc(hw.id || uid())}"><legend>Домашнее задание</legend><div class="section-head"><label class="field grow">Задание<textarea data-value="text" maxlength="2000" required>${esc(hw.text || "")}</textarea></label><button type="button" class="icon-button" data-remove-homework aria-label="Удалить домашнее задание">×</button></div><div class="ingredient-values"><label class="field">Дата пары<input data-value="date" type="date" value="${esc(hw.date || D.nextClassDate({ day: item.day || selectedDay, weekType: item.weekType || "Каждую неделю" }, scheduleWeek < D.monday(today()) ? today() : D.addDays(scheduleWeek, D.days.indexOf(item.day || selectedDay)), data.scheduleCycle))}" required></label><label class="field">Сдать до<input data-value="time" type="time" value="${esc(hw.time || item.start || "09:00")}" required></label></div><label class="checkbox-label"><input data-value="done" type="checkbox" ${hw.done ? "checked" : ""}> ДЗ выполнено</label><p class="hint">Напоминания за 48, 24 и 10 часов до начала пары в эту дату.</p></fieldset>`;
   }
   function openEditor(key, id, mode = "plan", recordDate) {
     const historical = recordDate
@@ -466,6 +487,9 @@
       defaults = {
         date: today(),
         day: selectedDay,
+        weekType: data.scheduleCycle.confirmed
+          ? D.cycleType(scheduleWeek, data.scheduleCycle)
+          : "Каждую неделю",
         time: "17:30",
         servings: 1,
         minutes: 20,
@@ -595,12 +619,11 @@
         if (
           v.homework.some(
             (hw) =>
-              D.days[(new Date(`${hw.date}T12:00:00`).getDay() + 6) % 7] !==
-              v.day,
+              !hw.done && !D.classOnDate(v, hw.date, data.scheduleCycle, true),
           )
         )
           return fail(
-            "Дата ДЗ должна совпадать с днём недели пары. Исправь дату или день пары.",
+            "Дата ДЗ должна совпадать с днём пары и её числителем/знаменателем. Исправь дату или тип недели.",
           );
       }
       if (key === "gym") {
@@ -635,7 +658,14 @@
       };
       if (old) data[key] = data[key].map((x) => (x.id === id ? item : x));
       else data[key].push(item);
-      if (key === "schedule") selectedDay = v.day;
+      if (key === "schedule") {
+        selectedDay = v.day;
+        if (
+          v.weekType !== "Каждую неделю" &&
+          D.cycleType(scheduleWeek, data.scheduleCycle) !== v.weekType
+        )
+          scheduleWeek = D.addDays(scheduleWeek, 7);
+      }
       if (key === "finance") {
         financeWeek = D.monday(v.date);
         category = "Все";
@@ -669,6 +699,7 @@
           initData: tg.initData,
           enabled,
           timezone: data.notifications.timezone,
+          cycle: data.scheduleCycle,
           schedule: data.schedule,
           reminders: data.reminders,
           finance: data.finance,
@@ -738,6 +769,11 @@
     const b = event.target.closest("button");
     if (!b) return;
     const key = route();
+    if (b.dataset.cycleType) {
+      if (D.cycleType(scheduleWeek, data.scheduleCycle) !== b.dataset.cycleType)
+        scheduleWeek = D.addDays(scheduleWeek, 7);
+      render();
+    }
     if (b.hasAttribute("data-close")) $("#editor").close();
     if (b.dataset.add) openEditor(b.dataset.add);
     if (b.dataset.edit) openEditor(key, b.dataset.edit);
@@ -752,12 +788,18 @@
       render();
     }
     if (b.dataset.week) {
-      const current = b.dataset.week === "gym" ? week : financeWeek,
+      const current =
+          b.dataset.week === "gym"
+            ? week
+            : b.dataset.week === "schedule"
+              ? scheduleWeek
+              : financeWeek,
         value =
           Number(b.dataset.shift) === 0
             ? D.monday(today())
             : D.addDays(current, Number(b.dataset.shift));
       if (b.dataset.week === "gym") week = value;
+      else if (b.dataset.week === "schedule") scheduleWeek = value;
       else financeWeek = value;
       render();
     }
@@ -801,13 +843,29 @@
         "beforeend",
         homeworkRow(
           {},
-          { day: f.elements.day.value, start: f.elements.start.value },
+          {
+            day: f.elements.day.value,
+            start: f.elements.start.value,
+            weekType: f.elements.weekType.value,
+          },
         ),
       );
     }
     if (b.hasAttribute("data-remove-homework"))
       b.closest(".homework-editor").remove();
     if (b.dataset.notifications) connectNotifications(b.dataset.notifications);
+  });
+  document.addEventListener("submit", (event) => {
+    if (event.target.id !== "cycle-form") return;
+    event.preventDefault();
+    data.scheduleCycle = {
+      anchorMonday: D.monday($("#cycle-anchor").value),
+      anchorType: $("#cycle-anchor-type").value,
+      confirmed: true,
+    };
+    const saved = persist();
+    render();
+    if (saved) toast("Чередование сохранено. Проверь даты уже добавленных ДЗ.");
   });
   document.addEventListener("input", (event) => {
     if (
@@ -874,6 +932,24 @@
     render();
     $("#content").focus({ preventScroll: true });
   });
+  let calendarDay = today();
+  function refreshCalendar() {
+    const current = today();
+    if (current === calendarDay) return;
+    const oldMonday = D.monday(calendarDay),
+      oldDay = D.days[(new Date(calendarDay + "T12:00:00").getDay() + 6) % 7];
+    if (scheduleWeek === oldMonday) scheduleWeek = D.monday(current);
+    if (week === oldMonday) week = D.monday(current);
+    if (financeWeek === oldMonday) financeWeek = D.monday(current);
+    if (selectedDay === oldDay) selectedDay = day();
+    calendarDay = current;
+    render();
+  }
+  setInterval(refreshCalendar, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshCalendar();
+  });
+  tg?.onEvent?.("activated", refreshCalendar);
   render();
   if (data.notifications.enabled && tg?.initData) syncNotifications();
 })();
