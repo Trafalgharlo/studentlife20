@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Student Life</title>
+
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+
+<body>
+    <div class="container">
+
+        <header>
+            <p class="subtitle">STUDENT LIFE</p>
+            <h1>Привет! 👋</h1>
+            <p class="description">
+                Твой помощник по учёбе и жизни
+            </p>
+        </header>
+
+        <div class="today">
+            <h2>📅 Сегодня</h2>
+
+            <div class="stats">
+                <div>
+                    <strong>3</strong>
+                    <span>Пары</span>
+                </div>
+
+                <div>
+                    <strong>2</strong>
+                    <span>Задачи</span>
+                </div>
+
+                <div>
+                    <strong>1</strong>
+                    <span>Тренировка</span>
+                </div>
+            </div>
+            <small>Пока демонстрационные данные</small>
+        </div>
+
+        <h2>Мои разделы</h2>
+
+        <div class="grid">
+            <button>📚 Расписание</button>
+            <button>🔔 Напоминания</button>
+            <button>🏠 Общага</button>
+            <button>🍳 Что приготовить?</button>
+            <button>💪 Качалка</button>
+            <button>💰 Финансы</button>
+        </div>
+
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+    </script>
+</body>
+</html>
