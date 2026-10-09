@@ -1,70 +1,23 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
-
-    <title>Student Life</title>
-
-    <link rel="stylesheet" href="/style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f6fa"><meta name="description" content="Student Life — учёба и повседневная жизнь студента в одном месте.">
+<title>Student Life — твой день, твои планы</title>
+<link rel="stylesheet" href="./style.css"><script src="https://telegram.org/js/telegram-web-app.js"></script><script src="./app.js" defer></script>
 </head>
-
 <body>
-    <div class="container">
-
-        <header>
-            <p class="subtitle">STUDENT LIFE</p>
-            <h1>Привет! 👋</h1>
-            <p class="description">
-                Твой помощник по учёбе и жизни
-            </p>
-        </header>
-
-        <div class="today">
-            <h2>📅 Сегодня</h2>
-
-            <div class="stats">
-                <div>
-                    <strong>3</strong>
-                    <span>Пары</span>
-                </div>
-
-                <div>
-                    <strong>2</strong>
-                    <span>Задачи</span>
-                </div>
-
-                <div>
-                    <strong>1</strong>
-                    <span>Тренировка</span>
-                </div>
-            </div>
-            <small>Пока демонстрационные данные</small>
-        </div>
-
-        <h2>Мои разделы</h2>
-
-        <div class="grid">
-            <button>📚 Расписание</button>
-            <button>🔔 Напоминания</button>
-            <button>🏠 Общага</button>
-            <button>🍳 Что приготовить?</button>
-            <button>💪 Качалка</button>
-            <button>💰 Финансы</button>
-        </div>
-
-    </div>
-
-    <script>
-        const tg = window.Telegram?.WebApp;
-
-        if (tg) {
-            tg.ready();
-            tg.expand();
-        }
-    </script>
-</body>
-</html>
+<a class="skip" href="#content">Перейти к содержимому</a>
+<div class="layout"><aside class="sidebar">
+<a class="brand" href="#home"><span class="logo">sl<span>•</span></span><span>student life<small>Меньше хаоса. Больше жизни.</small></span></a>
+<p class="nav-label">ТВОЁ ПРОСТРАНСТВО</p><nav id="navigation" aria-label="Разделы приложения"></nav>
+<div class="sidebar-note"><span>✦</span><strong>Всё начинается с тебя</strong><p>Маленькие планы сегодня — большие перемены завтра.</p></div>
+<small class="version">Student Life · локальный прототип</small></aside>
+<main id="content" tabindex="-1"><header class="topbar"><span class="eyebrow">ТВОЙ СТУДЕНЧЕСКИЙ РИТМ</span><span id="date"></span></header>
+<div class="page-heading"><div><h1 id="heading"></h1><p id="subtitle"></p></div><span class="avatar" aria-hidden="true">S</span></div>
+<div class="notice"><span>✦</span><p><strong>Демонстрационный режим.</strong> Записи «Демо» — примеры. Изменения хранятся только в этом браузере. Синхронизация с друзьями и уведомления бота не подключены.</p></div>
+<div id="view"></div><footer>Собери свой день по кусочкам <span>✦</span> student life</footer></main></div>
+<dialog id="editor" aria-labelledby="editor-title"><form id="edit-form"><div class="dialog-head"><h2 id="editor-title"></h2><button type="button" data-close aria-label="Закрыть форму">✕</button></div><div id="fields"></div><p id="form-error" class="error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-close>Отмена</button><button type="submit" class="primary">Сохранить</button></div></form></dialog>
+<dialog id="confirm" aria-labelledby="confirm-title"><h2 id="confirm-title">Удалить запись?</h2><p>Это действие нельзя отменить.</p><div class="form-actions"><button id="cancel-delete" class="secondary">Отмена</button><button id="confirm-delete" class="danger">Удалить</button></div></dialog>
+<div id="status" role="status" aria-live="polite"></div><noscript>Для работы Student Life включи JavaScript.</noscript>
+</body></html>
