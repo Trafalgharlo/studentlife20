@@ -1,0 +1,8 @@
+{
+  "name": "student-life",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Student Life Telegram Mini App local prototype",
+  "scripts": { "start": "node preview.cjs", "test": "node check.cjs" },
+  "devDependencies": { "playwright": "1.62.1" }
+}

@@ -45,6 +45,7 @@
     const inset = tg?.contentSafeAreaInset, safe = tg?.safeAreaInset;
     document.documentElement.style.setProperty('--safe-top',`${(inset?.top||0)+(safe?.top||0)}px`);
     document.documentElement.style.setProperty('--safe-bottom',`${(inset?.bottom||0)+(safe?.bottom||0)}px`);
+    for (const edge of ['left','right']) document.documentElement.style.setProperty(`--safe-${edge}`,`${(inset?.[edge]||0)+(safe?.[edge]||0)}px`);
   }
   theme();
   if(tg) { tg.ready(); tg.expand(); tg.onEvent?.('themeChanged',theme); tg.onEvent?.('safeAreaChanged',theme); tg.onEvent?.('contentSafeAreaChanged',theme); tg.BackButton?.onClick(() => { if($('#editor').open) $('#editor').close(); else if($('#confirm').open) $('#confirm').close(); else location.hash='home'; }); }
@@ -85,7 +86,7 @@
     if(key==='home') $('#view').innerHTML=home();
     else {
       let extra='', items=[...data[key]];
-      if(key==='schedule') { extra=`<div class="tabs" role="group" aria-label="День недели">${days.map(day=>`<button class="tab ${day===selectedDay?'active':''}" data-day="${day}" aria-pressed="${day===selectedDay}">${day.slice(0,2)}</button>`).join('')}</div>`; items=items.filter(x=>x.day===selectedDay).sort((a,b)=>a.start.localeCompare(b.start)); }
+      if(key==='schedule') { extra=`<div class="tabs" role="group" aria-label="День недели">${days.map(day=>`<button class="tab ${day===selectedDay?'active':''}" data-day="${day}" aria-label="${day}" aria-pressed="${day===selectedDay}">${day.slice(0,2)}</button>`).join('')}</div>`; items=items.filter(x=>x.day===selectedDay).sort((a,b)=>a.start.localeCompare(b.start)); }
       if(key==='finance') { const total=kind=>data.finance.filter(x=>x.kind===kind).reduce((sum,x)=>sum+x.amount,0); extra=`<div class="stats">${stat('↗',money(total('Доход')),'Все доходы')}${stat('↘',money(total('Расход')),'Все расходы')}${stat('◈',money(total('Доход')-total('Расход')),'Баланс · включая демо')}</div>`; }
       if(key==='meals') extra=mealPanel();
       if(['reminders','dorm','gym','finance'].includes(key)) items.sort((a,b)=>Number(a.done||false)-Number(b.done||false)||a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
@@ -104,7 +105,7 @@
       if(Array.isArray(type)) control=`<select name="${name}">${type.map(option=>`<option ${option===value?'selected':''}>${escape(option)}</option>`).join('')}</select>`;
       else if(type==='textarea') control=`<textarea name="${name}" maxlength="2000" ${['ingredients','recipe'].includes(name)?'required':''}>${escape(value)}</textarea>`;
       else control=`<input name="${name}" type="${type}" value="${escape(value)}" ${name==='teacher'?'':'required'} ${type==='number'?`min="${name==='amount'?'0.01':'1'}" max="${name==='amount'?'1000000000':'10000'}" step="${name==='amount'?'0.01':'1'}"`:'maxlength="150"'}>`;
-      return `<label class="field">${label}${control}</label>`;
+      return `<label class="field">${label}${name==='teacher'||(['note'].includes(name))?' (необязательно)':''}${control}</label>`;
     }).join('');
     $('#editor').showModal(); syncBack();
   }

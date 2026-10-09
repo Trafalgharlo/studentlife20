@@ -44,7 +44,7 @@ const { chromium } = require('playwright');
  await telegram.route('https://telegram.org/**',r=>r.fulfill({body:''}));
  await telegram.addInitScript(()=>{
   window.calls=[]; window.events={};
-  window.Telegram={WebApp:{colorScheme:'dark',contentSafeAreaInset:{top:10,bottom:5},safeAreaInset:{top:20,bottom:10},ready(){calls.push('ready')},expand(){calls.push('expand')},onEvent(name,cb){events[name]=cb},BackButton:{onClick(cb){window.back=cb},show(){calls.push('show')},hide(){calls.push('hide')}}};
+  window.Telegram={WebApp:{colorScheme:'dark',contentSafeAreaInset:{top:10,bottom:5},safeAreaInset:{top:20,bottom:10},ready(){calls.push('ready')},expand(){calls.push('expand')},onEvent(name,cb){events[name]=cb},BackButton:{onClick(cb){window.back=cb},show(){calls.push('show')},hide(){calls.push('hide')}}}};
  });
  await telegram.goto('http://127.0.0.1:4175');assert.deepEqual(await telegram.evaluate(()=>calls.slice(0,2)),['ready','expand']);
  await telegram.locator('a[href="#schedule"]').first().click();await telegram.locator('[data-add]').click();await telegram.evaluate(()=>back());assert.equal(await telegram.locator('#editor').evaluate(d=>d.open),false);
